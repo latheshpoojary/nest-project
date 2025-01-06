@@ -2,6 +2,7 @@ import {
   Inject,
   Injectable,
   Logger,
+  NotFoundException,
   UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
@@ -11,6 +12,7 @@ import { PRODUCT_REPOSITORY } from 'src/core/constants';
 import { Product } from './entities/product.entity';
 import { FileService } from 'src/core/services/file.service';
 import { where } from 'sequelize';
+import { Op } from 'sequelize';
 
 @Injectable()
 export class ProductService {
@@ -34,22 +36,42 @@ export class ProductService {
     return newProduct;
   }
 
-  async productForUser(id:number,createProductDto:CreateProductDto,files:any){
+  async productForUser(
+    id: number,
+    createProductDto: CreateProductDto,
+    files: any,
+  ) {
     const fileUrl = await this.fileService.saveFiles(files);
     const newProduct = await this.productRepository.create({
       ...createProductDto,
-      images:fileUrl,
-      published:false,
-      createdBy:id
-    })
+      images: fileUrl,
+      published: false,
+      createdBy: id,
+    });
     return newProduct;
   }
 
-  async findAll(name?:string) {
+  async findAll(page:number,limit:number,sortValue?:string,sortOrder?:string,name?: string,) {
+    if(name){
+      return await this.productRepository.findAll({
+        offset:(page - 1) * limit, //skip the page
+        limit,                     //limit the page
+        where: {
+          name:{
+            [Op.iLike]:`%${name}%` //regex based search
+          }
+        },
+        order:[
+          [sortValue,sortOrder]
+        ]
+      });
+    }
     return await this.productRepository.findAll({
-      where:{
-        name
-      }
+      offset:(page - 1) * limit,
+      limit,
+      order:[
+        [sortValue,sortOrder]
+      ]
     });
   }
 
@@ -61,25 +83,24 @@ export class ProductService {
     });
   }
 
-  async findPublished(){
+  async findPublished() {
     return await this.productRepository.findAll({
-      where:{
-        published:true
-      }
-    })
+      where: {
+        published: true,
+      },
+    });
   }
 
-
-  async findProductByUser(userId:number){
+  async findProductByUser(userId: number) {
     return await this.productRepository.findAll({
-      where:{
-        createdBy:userId
-      }
-    })
+      where: {
+        createdBy: userId,
+      },
+    });
   }
 
   async update(id: number, updateProductDto: UpdateProductDto) {
-   const [rowAffected,[updatedData]]= await this.productRepository.update(
+    const [rowAffected, [updatedData]] = await this.productRepository.update(
       {
         ...updateProductDto,
       },
@@ -87,32 +108,58 @@ export class ProductService {
         where: {
           id,
         },
-        returning: true
+        returning: true,
       },
-      
     );
 
     return {
       rowAffected,
-      updatedData
+      updatedData,
+    };
+  }
+
+  async updateProductForUser(
+    productId:number,
+    userId: number,
+    updateProductDto: UpdateProductDto,
+  ) {
+    const [rowAffected, [updateProduct]] = await this.productRepository.update(
+      {
+        ...updateProductDto,
+      },
+      {
+        where: {
+          id:productId,
+          createdBy: userId,
+          
+        },
+        returning: true,
+      },
+    );
+    if(!rowAffected) throw new NotFoundException()
+
+    return {
+      status:"Success",
+      message:"Product Updated Successfully",
+      updateProduct
     }
   }
 
   async remove(id: number) {
     const isDeleted = await this.productRepository.destroy({
-      where:{
-        id
-      }
-    })
-    if(isDeleted){
+      where: {
+        id,
+      },
+    });
+    if (isDeleted) {
       return {
-        status:"Success",
-        message:"Product Deleted Successfully"
-      }
+        status: 'Success',
+        message: 'Product Deleted Successfully',
+      };
     }
     return {
-      status:"Failed",
-      message:"Failed to delete Product"
-    }
+      status: 'Failed',
+      message: 'Failed to delete Product',
+    };
   }
 }

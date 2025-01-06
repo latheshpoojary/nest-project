@@ -15,11 +15,14 @@ import { AuthGuard } from 'src/core/guards/authentication.guard';
     UserService,
     ...usersProviders,
     CommonService,
-    {
-      provide:APP_GUARD,
-      useClass:AuthGuard
-    }
+    // {
+    //   provide:APP_GUARD,
+    //   useClass:AuthGuard
+    // }
+    AuthGuard
   ],
   
 })
-export class UserModule {}
+export class UserModule {
+  
+}

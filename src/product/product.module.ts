@@ -26,11 +26,12 @@ import { FileService } from 'src/core/services/file.service';
   controllers: [ProductController],
   providers: [ProductService,
     FileService,
-    {
-      provide:APP_GUARD,
-      useClass:AuthGuard
-    },
-    ...productProvider
+    // {
+    //   provide:APP_GUARD,
+    //   useClass:AuthGuard
+    // },
+    ...productProvider,
+    AuthGuard
   ],
 })
 export class ProductModule {}

@@ -21,29 +21,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private commonService: CommonService,
   ) {}
-  // async register(createAuthDto: CreateUserDto) {
-  //   const isUserExist = await this.userModel.findOne({
-  //     email: createAuthDto.email,
-  //   });
-
-  //   if (isUserExist) throw new ConflictException('User Already Exist');
-
-  //   const hashedPassword = await this.commonService.hashPassword(
-  //     createAuthDto.password,
-  //   );
-  //   const body = {
-  //     ...createAuthDto,
-  //     password: hashedPassword,
-  //   };
-  //   const newUser = new this.userModel(body);
-  //   const userDetails = await newUser.save();
-  //   console.log(userDetails, 'userDetails');
-
-  //   const payload = { id: userDetails._id, role: userDetails.role };
-  //   return {
-  //     access_token: await this.jwtService.signAsync(payload),
-  //   };
-  // }
+  
 
   async login(body: { email: string; password: string }) {
     const isUserExist = await this.userRepository.findOne({

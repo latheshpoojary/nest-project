@@ -8,11 +8,13 @@ import { Roles } from 'src/core/decorators/role.decorator';
 import { RoleGuard } from 'src/core/guards/role.guard';
 
 @Controller('user')
+@UseGuards(AuthGuard)
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
 
   @Post('create')
+  
   @Roles(Role.Admin)
   @UseGuards(RoleGuard)
   create(@Body(ValidationPipe) createUserDto: CreateUserDto) {
