@@ -13,6 +13,10 @@ import { Product } from './entities/product.entity';
 import { FileService } from 'src/core/services/file.service';
 import { where } from 'sequelize';
 import { Op } from 'sequelize';
+import { Multer } from 'multer';
+
+import { createReadStream, readFileSync } from 'fs';
+import * as csv from 'csv-parser';
 
 @Injectable()
 export class ProductService {
@@ -36,6 +40,33 @@ export class ProductService {
     return newProduct;
   }
 
+
+  async bulk(file:Express.Multer.File,request:any){
+    let result =[];
+      createReadStream(file.path)
+      .pipe(csv())
+      .on('data',(data)=>result.push({
+        ...data,
+        createdBy:request.user.id,
+        published:false
+      }))
+      .on('end',async()=>{
+        const rowAffected = await this.productRepository.bulkCreate(result,{
+          returning:true
+         }); 
+
+         return {
+          rowAffected
+          
+         }
+        
+      })
+
+       
+         
+    
+  }
+
   async productForUser(
     id: number,
     createProductDto: CreateProductDto,
@@ -51,9 +82,10 @@ export class ProductService {
     return newProduct;
   }
 
-  async findAll(page:number,limit:number,sortValue?:string,sortOrder?:string,name?: string,) {
+  async findAll(page:any,limit:number,sortValue?:string,sortOrder?:string,name?: string,) {
+    let result;
     if(name){
-      return await this.productRepository.findAll({
+      result =  await this.productRepository.findAll({
         offset:(page - 1) * limit, //skip the page
         limit,                     //limit the page
         where: {
@@ -66,13 +98,21 @@ export class ProductService {
         ]
       });
     }
-    return await this.productRepository.findAll({
-      offset:(page - 1) * limit,
-      limit,
-      order:[
-        [sortValue,sortOrder]
-      ]
-    });
+    else{
+      result = await this.productRepository.findAll({
+        offset:(page - 1) * limit,
+        limit,
+        order:[
+          [sortValue,sortOrder]
+        ]
+      });
+    }
+    return {
+      total:result.length,
+      result,
+      page
+    }
+    
   }
 
   async findOne(id: number) {

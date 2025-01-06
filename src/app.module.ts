@@ -12,6 +12,8 @@ import { ProductModule } from './product/product.module';
 import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { ScheduleModule } from '@nestjs/schedule';
+import { NotificationService } from './core/services/schedule.service';
 
 
 @Module({
@@ -27,6 +29,7 @@ import { extname } from 'path';
     //   })
     // }),
     
+    ScheduleModule.forRoot(),
 
   
    
