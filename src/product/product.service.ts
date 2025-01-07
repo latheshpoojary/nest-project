@@ -15,8 +15,10 @@ import { where } from 'sequelize';
 import { Op } from 'sequelize';
 import { Multer } from 'multer';
 
-import { createReadStream, readFileSync } from 'fs';
+import { createReadStream, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import * as csv from 'csv-parser';
+import { CsvHandlerService } from 'src/core/services/csv.service';
+import { Response } from 'express';
 
 @Injectable()
 export class ProductService {
@@ -25,6 +27,7 @@ export class ProductService {
     @Inject(PRODUCT_REPOSITORY)
     private readonly productRepository: typeof Product,
     private readonly fileService: FileService,
+    private readonly csvService:CsvHandlerService
   ) {}
 
   async create(createProductDto: CreateProductDto, request: any, files: any) {
@@ -54,7 +57,7 @@ export class ProductService {
         const rowAffected = await this.productRepository.bulkCreate(result,{
           returning:true
          }); 
-
+         unlinkSync(file.path)
          return {
           rowAffected
           
@@ -201,5 +204,14 @@ export class ProductService {
       status: 'Failed',
       message: 'Failed to delete Product',
     };
+  }
+
+
+  async downloadProducts(response:Response){
+    const products = await this.productRepository.findAll({raw:true});
+    const csvData = this.csvService.convertToCSV(products);
+    writeFileSync('product.csv',csvData)
+    return response.download('product.csv')
+    
   }
 }

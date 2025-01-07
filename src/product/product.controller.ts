@@ -17,11 +17,12 @@ import {
   ValidationPipe,
   DefaultValuePipe,
   UploadedFile,
+  Res,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 
 import { Roles } from 'src/core/decorators/role.decorator';
@@ -89,6 +90,12 @@ export class ProductController {
     return this.productService.findAll(+page,limit,sortValue,sortOrder,name);
   }
 
+
+  @Get('download')
+  downloadProducts(@Res() response:Response){
+    this.productService.downloadProducts(response);
+  }
+
   @Get('published')
   findPublished() {
     return this.productService.findPublished();
@@ -121,4 +128,7 @@ export class ProductController {
   remove(@Param('id') id: string) {
     return this.productService.remove(+id);
   }
+
+
+  
 }

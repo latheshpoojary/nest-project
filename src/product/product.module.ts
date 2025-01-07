@@ -9,6 +9,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { FileService } from 'src/core/services/file.service';
+import csvParser from 'csv-parser';
+import {  CsvHandlerService } from 'src/core/services/csv.service';
 
 @Module({
   imports:[JwtModule,
@@ -31,7 +33,8 @@ import { FileService } from 'src/core/services/file.service';
     //   useClass:AuthGuard
     // },
     ...productProvider,
-    AuthGuard
+    AuthGuard,
+    CsvHandlerService
   ],
 })
 export class ProductModule {}
