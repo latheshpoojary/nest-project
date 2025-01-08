@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import { IsDecimal, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class CreateProductDto {
@@ -21,11 +22,7 @@ export class CreateProductDto {
   price: number;
 
   @IsNotEmpty()
-  @IsNumber(
-    {},
-    {
-      message: 'Rating is Incorrect',
-    },
-  )
+  @Type(()=>Number)
+  @IsNumber()
   rating: number;
 }

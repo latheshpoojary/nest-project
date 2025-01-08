@@ -8,17 +8,25 @@ import {
 } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { PRODUCT_REPOSITORY } from 'src/core/constants';
+import { PRODUCT_REPOSITORY, USER_REPOSITORY } from 'src/core/constants';
 import { Product } from './entities/product.entity';
 import { FileService } from 'src/core/services/file.service';
-import { where } from 'sequelize';
+import { col, fn, where } from 'sequelize';
 import { Op } from 'sequelize';
 import { Multer } from 'multer';
 
-import { createReadStream, readFileSync, unlinkSync, writeFileSync } from 'fs';
+import { createReadStream, mkdirSync, readFileSync, unlinkSync, writeFile, writeFileSync } from 'fs';
 import * as csv from 'csv-parser';
 import { CsvHandlerService } from 'src/core/services/csv.service';
 import { Response } from 'express';
+import { User } from 'src/user/entities/user.entity';
+import { MailHandler } from 'src/Shared/Services/mail.service';
+import { MailConfig } from 'src/core/interfaces/mail.interface';
+import { Json } from 'sequelize/types/utils';
+import { raw } from '@nestjs/mongoose';
+import { ExcelService } from 'src/Shared/Services/excel.service';
+import { error } from 'console';
+import * as path from 'path';
 
 @Injectable()
 export class ProductService {
@@ -27,7 +35,10 @@ export class ProductService {
     @Inject(PRODUCT_REPOSITORY)
     private readonly productRepository: typeof Product,
     private readonly fileService: FileService,
-    private readonly csvService:CsvHandlerService
+    private readonly csvService:CsvHandlerService,
+    @Inject(USER_REPOSITORY) private readonly userRepository:typeof User,
+    private readonly mailService:MailHandler,
+    private readonly excelService:ExcelService
   ) {}
 
   async create(createProductDto: CreateProductDto, request: any, files: any) {
@@ -46,6 +57,7 @@ export class ProductService {
 
   async bulk(file:Express.Multer.File,request:any){
     let result =[];
+    
       createReadStream(file.path)
       .pipe(csv())
       .on('data',(data)=>result.push({
@@ -54,17 +66,15 @@ export class ProductService {
         published:false
       }))
       .on('end',async()=>{
-        const rowAffected = await this.productRepository.bulkCreate(result,{
+         await this.productRepository.bulkCreate(result,{
           returning:true
          }); 
          unlinkSync(file.path)
-         return {
-          rowAffected
-          
-         }
+         
         
       })
 
+      
        
          
     
@@ -75,13 +85,32 @@ export class ProductService {
     createProductDto: CreateProductDto,
     files: any,
   ) {
+
+    const user = await this.userRepository.findByPk(id);
+    if(!user) return {
+      status:"Failed",
+      message:"User Not Found"
+    }
+
     const fileUrl = await this.fileService.saveFiles(files);
+    
     const newProduct = await this.productRepository.create({
       ...createProductDto,
       images: fileUrl,
       published: false,
       createdBy: id,
     });
+    const mailConfig:MailConfig = {
+      from:"admin@gmail.com",
+      to:user.email,
+      subject:"Product is Hosted in the Nodejs Application",
+      content:`Admin added the product behalf of you
+      
+      Product Details:
+      ${JSON.stringify(newProduct)}
+      `,
+    }
+    this.mailService.sendMail(mailConfig);
     return newProduct;
   }
 
@@ -119,11 +148,16 @@ export class ProductService {
   }
 
   async findOne(id: number) {
-    return await this.productRepository.findOne({
+    const product = await this.productRepository.findOne({
       where: {
         id,
       },
     });
+    if(!product) return {
+      status:"Success",
+      message:"Product Not found"
+    }
+    return product;
   }
 
   async findPublished() {
@@ -135,11 +169,17 @@ export class ProductService {
   }
 
   async findProductByUser(userId: number) {
-    return await this.productRepository.findAll({
+    const product =  await this.productRepository.findAll({
       where: {
         createdBy: userId,
       },
     });
+
+    if(product.length === 0) return {
+      status:"Success",
+      message:"No Product found"
+    }
+    return product
   }
 
   async update(id: number, updateProductDto: UpdateProductDto) {
@@ -212,6 +252,66 @@ export class ProductService {
     const csvData = this.csvService.convertToCSV(products);
     writeFileSync('product.csv',csvData)
     return response.download('product.csv')
+    
+  }
+
+  async getMonthlyReport(response:any){
+
+    const now = new Date();
+    // Get first day of current month in UTC
+  const startOfMonth = new Date(Date.UTC(
+    now.getFullYear(),
+    now.getMonth()+1,
+    1,
+    0, 0, 0
+  )).toISOString().replace('Z', '+05:30');;
+
+  // Get last day of current month in UTC
+  const endOfMonth = new Date(Date.UTC(
+    now.getFullYear(),
+    now.getMonth() + 2,
+    0,
+    23, 59, 59, 999
+  )).toISOString().replace('Z', '+05:30');;
+    console.log(startOfMonth,endOfMonth);
+    
+    const monthlyDetails = await this.productRepository.findAll({
+      where:{
+        createdAt:{
+
+          [Op.between]:[startOfMonth,endOfMonth]
+        },
+       
+      },
+     
+      raw:true,
+      attributes:[
+        'name',
+        'description',
+        'images',
+        'price',
+        'rating',
+
+
+        [
+          col('user.name'),
+          'created By'
+        ]
+      ],
+      include:{
+        model:User,
+        attributes:[]
+        
+      }
+    })
+    console.log(monthlyDetails,"Monthly Details");
+    
+    const xlsBuffer = await this.excelService.createExcelSheet(monthlyDetails);
+    const dir = './reports';
+    const today = new Date();
+    const monthName = today.toLocaleString('default', { month: 'long' });
+    const filePath = path.join(dir, `${monthName} Product.xlsx`);
+    return response.download(filePath);
     
   }
 }

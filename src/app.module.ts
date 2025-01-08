@@ -14,6 +14,8 @@ import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { ScheduleModule } from '@nestjs/schedule';
 import { NotificationService } from './core/services/schedule.service';
+import { LoggerModule } from './modules/logger/logger.module';
+import { MailerModule } from '@nestjs-modules/mailer';
 
 
 @Module({
@@ -28,18 +30,27 @@ import { NotificationService } from './core/services/schedule.service';
     //     then:console.log("connected successfully"),
     //   })
     // }),
-    
     ScheduleModule.forRoot(),
-
-  
-   
+    LoggerModule,
     AuthModule,
-   
     DatabaseModule,
-   
     UserModule,
-   
-    ProductModule
+    ProductModule,
+    MailerModule.forRootAsync({
+        imports:[ConfigModule],
+        inject:[ConfigService],
+        useFactory:async (configService:ConfigService)=>({
+          transport:{
+            host:configService.get('MAIL_HOST'),
+            auth:{
+              user:configService.get('MAIL_USER'),
+              pass:configService.get('MAIL_SECRET')
+            },
+            port:configService.get('MAIL_PORT')
+          }
+
+        })
+    })
   ],
   controllers: [AppController],
   providers: [AppService],

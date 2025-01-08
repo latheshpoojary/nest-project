@@ -32,7 +32,7 @@ import { AuthGuard } from 'src/core/guards/authentication.guard';
 import { ProductQueryDto } from './dto/product-query.dto';
 
 @Controller('product')
-@UseGuards(AuthGuard)
+// @UseGuards(AuthGuard)
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
@@ -61,6 +61,12 @@ export class ProductController {
   productBulk(@UploadedFile() file:Express.Multer.File,@Req() request:Request){
 
     return this.productService.bulk(file,request);
+  }
+
+  @Get('report')
+   getMonthlyReport(@Res() response:Response){
+    this.productService.getMonthlyReport(response);
+    // return response.download('monthlyReport.xlsx');
   }
 
 
@@ -129,6 +135,8 @@ export class ProductController {
     return this.productService.remove(+id);
   }
 
+
+  
 
   
 }

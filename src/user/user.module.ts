@@ -7,6 +7,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { APP_GUARD } from '@nestjs/core';
 import { RoleGuard } from 'src/core/guards/role.guard';
 import { AuthGuard } from 'src/core/guards/authentication.guard';
+import { USER_REPOSITORY } from 'src/core/constants';
+import { MailHandler } from 'src/Shared/Services/mail.service';
 
 @Module({
   imports:[JwtModule],
@@ -19,7 +21,8 @@ import { AuthGuard } from 'src/core/guards/authentication.guard';
     //   provide:APP_GUARD,
     //   useClass:AuthGuard
     // }
-    AuthGuard
+    
+    MailHandler
   ],
   
 })

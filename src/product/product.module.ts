@@ -11,6 +11,10 @@ import { diskStorage } from 'multer';
 import { FileService } from 'src/core/services/file.service';
 import csvParser from 'csv-parser';
 import {  CsvHandlerService } from 'src/core/services/csv.service';
+import { usersProviders } from 'src/user/users.providers';
+import { UserModule } from 'src/user/user.module';
+import { MailHandler } from 'src/Shared/Services/mail.service';
+import { ExcelService } from 'src/Shared/Services/excel.service';
 
 @Module({
   imports:[JwtModule,
@@ -24,17 +28,17 @@ import {  CsvHandlerService } from 'src/core/services/csv.service';
         }
       })
     }),
+   
   ],
   controllers: [ProductController],
   providers: [ProductService,
     FileService,
-    // {
-    //   provide:APP_GUARD,
-    //   useClass:AuthGuard
-    // },
+    CsvHandlerService,
     ...productProvider,
-    AuthGuard,
-    CsvHandlerService
+    ...usersProviders,
+    MailHandler,
+    ExcelService
+    
   ],
 })
 export class ProductModule {}
