@@ -21,6 +21,11 @@ export class UserController {
     return this.userService.create(createUserDto);
   }
 
+  @Get('report')
+  getAnnualReport(){
+    return this.userService.getAnnualUser()
+  }
+
   @Get('report/:month')
   getMonthlyReport(@Param('month',ParseIntPipe) month:number){
     return this.userService.getMonthlYUser(month);
@@ -45,6 +50,8 @@ export class UserController {
   }
 
   @Delete(':id')
+  @Roles(Role.Admin)
+  @UseGuards(RoleGuard)
   remove(@Param('id',ParseIntPipe) id: number) {
     return this.userService.remove(id);
   }

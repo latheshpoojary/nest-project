@@ -17,7 +17,7 @@ import { LoggerService } from 'src/modules/logger/logger.service';
 import { MailHandler } from 'src/Shared/Services/mail.service';
 import { MailConfig } from 'src/core/interfaces/mail.interface';
 import { ConfigService } from '@nestjs/config';
-import { Op } from 'sequelize';
+import { fn, literal, Op } from 'sequelize';
 
 @Injectable()
 export class UserService {
@@ -176,4 +176,19 @@ export class UserService {
     };
   }
 
+
+  async getAnnualUser(){
+    const annualReport = await this.userRepository.findAll({
+      attributes:[
+        [fn('EXTRACT',literal('MONTH FROM "createdAt"')),'month'],
+        [fn('COUNT','*'),'count']
+      ],
+      group:['month']
+    })
+
+    return {
+      status:"Success",
+      annualReport
+    }
+  }
 }

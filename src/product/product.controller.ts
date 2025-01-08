@@ -32,7 +32,7 @@ import { AuthGuard } from 'src/core/guards/authentication.guard';
 import { ProductQueryDto } from './dto/product-query.dto';
 
 @Controller('product')
-// @UseGuards(AuthGuard)
+@UseGuards(AuthGuard)
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
@@ -53,8 +53,13 @@ export class ProductController {
     @Body(ValidationPipe) createProductDto: CreateProductDto,
     @Req() request: Request,
   ) {
+    console.log("called in productcontroller create");
+    
+    
     return this.productService.create(createProductDto, request, file);
   }
+
+ 
 
   @Post('bulk')
   @UseInterceptors(FileInterceptor('products'))
@@ -64,10 +69,10 @@ export class ProductController {
   }
 
   @Get('report')
-   getMonthlyReport(@Res() response:Response){
-    this.productService.getMonthlyReport(response);
-    // return response.download('monthlyReport.xlsx');
+  getAnnualReport(){
+   return this.productService.getAnnualReport();
   }
+  
 
 
   @Post(':userId')

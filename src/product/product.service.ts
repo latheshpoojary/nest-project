@@ -11,7 +11,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { PRODUCT_REPOSITORY, USER_REPOSITORY } from 'src/core/constants';
 import { Product } from './entities/product.entity';
 import { FileService } from 'src/core/services/file.service';
-import { col, fn, where } from 'sequelize';
+import { col, fn, literal, where } from 'sequelize';
 import { Op } from 'sequelize';
 import { Multer } from 'multer';
 
@@ -43,8 +43,9 @@ export class ProductService {
 
   async create(createProductDto: CreateProductDto, request: any, files: any) {
     const fileUrl = await this.fileService.saveFiles(files);
-    console.log(fileUrl);
-
+    console.log(request.user);
+    
+    this.logger.log(ProductService.name,"User Details",request)
     const newProduct = await this.productRepository.create({
       ...createProductDto,
       createdBy: request.user.id,
@@ -313,5 +314,22 @@ export class ProductService {
     const filePath = path.join(dir, `${monthName} Product.xlsx`);
     return response.download(filePath);
     
+  }
+
+  async getAnnualReport(){
+    const annualReport = await this.productRepository.findAll({
+      attributes:[
+        [fn('EXTRACT',literal('MONTH FROM "createdAt"')),'month'],
+        [fn('COUNT','*'),'count']
+      ],
+      group:['month'],
+      raw:true
+    })
+    console.log(annualReport,"Annula report");
+    
+    return {
+      status:"Success",
+      annualReport
+    };
   }
 }
